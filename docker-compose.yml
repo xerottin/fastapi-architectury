@@ -73,7 +73,7 @@ services:
       - zehn-architectury-net
 
   fastapi:
-    image: ghcr.io/xerottin/zehn-architectury:latest
+    image: ghcr.io/xerottin/fastapi-architectury:latest
     container_name: zehn_architectury_fastapi
     environment:
       APP_NAME: Zehn-Arch
@@ -148,7 +148,7 @@ services:
       - zehn-architectury-net
 
   worker:
-    image: ghcr.io/xerottin/zehn-architectury:latest
+    image: ghcr.io/xerottin/fastapi-architectury:latest
     container_name: zehn_architectury_worker
     env_file:
       - .env
