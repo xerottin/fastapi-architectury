@@ -55,7 +55,7 @@ def get_collection():
     return db["items"]
 
 
-@router.post("/", status_code=201)
+@router.post("/", status_code=201, deprecated=True)
 async def create_item(item: ItemCreate):
     collection = get_collection()
     result = await collection.insert_one(item.model_dump())
