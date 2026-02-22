@@ -201,4 +201,4 @@ volumes:
 
 networks:
   zehn-architectury-net:
-    driver: external
+    external: true
