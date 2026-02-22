@@ -1,37 +1,32 @@
+version: "3.9"
+
 services:
 
   postgres:
     image: postgres:16
     container_name: zehn_architectury_postgres
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-zehn_architectury_db}
-      POSTGRES_USER: ${POSTGRES_USER:-zehn_architectury_admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ping1234}
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5438:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zehn_architectury_admin} -d ${POSTGRES_DB:-zehn_architectury_db}"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
     networks:
       - zehn-architectury-net
 
   mongo:
     image: mongo:7
     container_name: zehn_architectury_mongo
-    ports:
-      - "27049:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-example}
-      TZ: ${TZ:-Asia/Tashkent}
+    env_file:
+      - .env
     volumes:
       - mongo_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "echo 'db.runCommand({ ping: 1 })' | mongosh --username ${MONGO_INITDB_ROOT_USERNAME:-root} --password ${MONGO_INITDB_ROOT_PASSWORD:-example} --authenticationDatabase admin --quiet || exit 1"]
+      test: ["CMD-SHELL", "echo 'db.runCommand({ ping: 1 })' | mongosh --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --quiet || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -42,8 +37,6 @@ services:
   redis:
     image: redis:7-alpine
     container_name: zehn_architectury_redis
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -58,9 +51,6 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: zehn_architectury_rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
       interval: 10s
@@ -73,12 +63,8 @@ services:
   minio:
     image: minio/minio
     container_name: zehn_architectury_minio
-    ports:
-      - "9222:9000"
-      - "9211:9211"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    env_file:
+      - .env
     command: server /data --console-address ":9211"
     volumes:
       - minio_data:/data
@@ -87,9 +73,7 @@ services:
       - zehn-architectury-net
 
   fastapi:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
+    image: ghcr.io/xerottin/zehn-architectury:latest
     container_name: zehn_architectury_fastapi
     environment:
       APP_NAME: Zehn-Arch
@@ -143,10 +127,16 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
-      minio:
-        condition: service_started
-    working_dir: /app
-    command: bash -c "alembic upgrade head && gunicorn -b 0.0.0.0:8000 -w 1 -t 120 -k uvicorn.workers.UvicornWorker main:app --reload --max-requests 1000 --max-requests-jitter 100 --access-logfile -"
+    command: >
+      bash -c "alembic upgrade head &&
+      gunicorn -b 0.0.0.0:8000
+      -w 2
+      -t 120
+      -k uvicorn.workers.UvicornWorker
+      main:app
+      --max-requests 1000
+      --max-requests-jitter 100
+      --access-logfile -"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -158,11 +148,10 @@ services:
       - zehn-architectury-net
 
   worker:
-    build:
-      context: ./app
-      dockerfile: Dockerfile
+    image: ghcr.io/xerottin/zehn-architectury:latest
     container_name: zehn_architectury_worker
-    working_dir: /app
+    env_file:
+      - .env
     command: celery -A worker.celery_app:celery_app worker -l info
     environment:
       DB_HOST: postgres
@@ -188,13 +177,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - zehn-architectury-net
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 60
+    restart: unless-stopped
 
 volumes:
   postgres_data:
@@ -204,4 +201,4 @@ volumes:
 
 networks:
   zehn-architectury-net:
-    driver: bridge
+    driver: external
