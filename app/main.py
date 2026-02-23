@@ -181,7 +181,7 @@ async def request_logging_middleware(request: Request, call_next):
 @app.get("/health", tags=["infra"])
 async def health_check():
     """Liveness probe — app is running."""
-    return {"status": "okay"}
+    return {"status": "okay_1"}
 
 
 @app.get("/ready", tags=["infra"])
