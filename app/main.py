@@ -89,6 +89,17 @@ app = FastAPI(
     description="Zehn Architectury API",
     version=settings.app_version,
     lifespan=lifespan,
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+        "displayRequestDuration": True,
+        "docExpansion": "none",   # none | list | full
+        "defaultModelsExpandDepth": -1,
+        "tryItOutEnabled": True,
+        "filter": True,
+        "deepLinking": True,
+        "showExtensions": True,
+
+    }
     # docs_url="/docs" if settings.debug else None,
     # redoc_url="/redoc" if settings.debug else None,
     # openapi_url="/openapi.json" if settings.debug else None,
