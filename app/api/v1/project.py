@@ -2,7 +2,9 @@ from typing import Optional
 from uuid import UUID
 
 from auth.dependencies import get_current_user
-from services.project import create_project, delete_project, get_project, list_projects, my_project, update_project
+from schemas.user import UserResponse
+from services.project import create_project, delete_project, get_project, list_projects, my_project, update_project, \
+    get_project_users
 from db.session import get_pg_db
 from fastapi import APIRouter, Depends, status
 from models import User
@@ -26,7 +28,22 @@ async def list_projects_endpoint(
     db: AsyncSession = Depends(get_pg_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    description: get all projects of owner-user
+    """
     return await list_projects(db, current_user)
+
+
+@router.get("/users", response_model=list[UserResponse], status_code=status.HTTP_200_OK)
+async def get_project_users_endpoint(
+    db: AsyncSession = Depends(get_pg_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    description: get all users of current-project
+    """
+    print(f"current_user: {current_user.id}, db: {current_user.project_id}")
+    return await get_project_users(db, private_id=current_user.project_id)
 
 
 @router.get("/my", response_model=Optional[ProjectResponse], status_code=status.HTTP_200_OK)
@@ -34,6 +51,9 @@ async def my_project_endpoint(
     db: AsyncSession = Depends(get_pg_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    description: get project of default-user
+    """
     return await my_project(db, current_user)
 
 

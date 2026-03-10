@@ -5,8 +5,7 @@ from uuid import UUID
 
 from auth.jwt import create_access_token, create_refresh_token, hash_password, verify_password
 from core.exceptions import AppException
-from services.base import get_by_id, get_by_public_id
-from models import Project
+from services.base import get_by_public_id
 from models.user import User
 from schemas.user import UserCreateRequest, UserLoginSchemas, UserUpdateRequest
 from sqlalchemy import select
@@ -98,50 +97,6 @@ async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
 
 async def get_user(db: AsyncSession, public_id: UUID) -> User:
     return await get_by_public_id(db, User, public_id)
-
-
-async def get_project_users(
-    db: AsyncSession,
-    *,
-    public_id: UUID | None = None,
-    private_id: int | None = None,
-) -> list[User]:
-    if not public_id and not private_id:
-        raise AppException(
-            code="PROJECT_ID_REQUIRED",
-            i18n_key="errors.project_not_found",
-            status_code=400,
-            detail="Either public_id or private_id must be provided",
-        )
-
-    if public_id and private_id:
-        raise AppException(
-            code="AMBIGUOUS_PROJECT_ID",
-            i18n_key="errors.invalid_request",
-            status_code=400,
-            detail="Provide either public_id or private_id, not both",
-        )
-
-    project = await get_by_public_id(db, Project, public_id) if public_id else await get_by_id(db, Project, private_id)
-
-    if not project:
-        raise AppException(
-            code="PROJECT_NOT_FOUND",
-            i18n_key="errors.project_not_found",
-            status_code=404,
-            detail="Project not found",
-        )
-
-    result = await db.scalars(
-        select(User)
-        .where(
-            User.project_id == project.id,
-            User.is_active.is_(True),
-        )
-        .order_by(User.id)
-    )
-
-    return result.all()
 
 
 async def update_user(db: AsyncSession, public_id: UUID, user_update: UserUpdateRequest) -> User:

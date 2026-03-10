@@ -2,7 +2,7 @@ import logging
 from uuid import UUID
 
 from core.exceptions import AppException
-from services.base import get_by_public_id
+from services.base import get_by_public_id, get_by_id
 from models import Project, User
 from schemas.project import ProjectCreate, ProjectUpdate
 from sqlalchemy import select
@@ -11,51 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 logger = logging.getLogger(__name__)
 
 
-async def get_owned_project(
-    public_id: UUID,
-    db: AsyncSession,
-    user_id: int,
-) -> Project:
-    project = await get_by_public_id(db, Project, public_id)
-
-    if project.owner_id != user_id:
-        raise AppException(
-            code="PROJECT_NOT_FOUND",
-            i18n_key="errors.project_not_found",
-            status_code=404,
-            detail="Project not found",
-        )
-
-    return project
-
-
-async def get_project_id_by_public_id(
-    public_id: UUID,
-    db: AsyncSession,
-):
-    project_public_id = (
-        await db.execute(
-            select(Project).where(
-                Project.public_id == public_id,
-                Project.is_active.is_(True),
-            )
-        )
-    ).scalar_one_or_none()
-    if not project_public_id:
-        raise AppException(
-            code="INTERNAL_ERROR",
-            i18n_key="errors.internal_server_error",
-            status_code=500,
-            detail="Project not found",
-        )
-    return project_public_id.id
-
-
 async def create_project(
     payload: ProjectCreate,
     db: AsyncSession,
     current_user: User,
 ) -> Project:
+    print(f"current_user: {current_user.id}, project: {current_user.project_id}")
     exist_project = await db.scalar(
         select(Project).where(
             Project.name == payload.name,
@@ -96,6 +57,81 @@ async def create_project(
             status_code=500,
             detail="Internal server error",
         ) from e
+
+
+async def get_owned_project(
+    public_id: UUID,
+    db: AsyncSession,
+    user_id: int,
+) -> Project:
+    project = await get_by_public_id(db, Project, public_id)
+
+    if project.owner_id != user_id:
+        raise AppException(
+            code="PROJECT_NOT_FOUND",
+            i18n_key="errors.project_not_found",
+            status_code=404,
+            detail="Project not found",
+        )
+
+    return project
+
+
+async def get_project_users(
+    db: AsyncSession,
+    *,
+    public_id: UUID | None = None,
+    private_id: int | None = None,
+) -> list[User]:
+
+    if not public_id and not private_id:
+        return []
+
+    if public_id and private_id:
+        raise AppException(
+            code="AMBIGUOUS_PROJECT_ID",
+            i18n_key="errors.invalid_request",
+            status_code=400,
+            detail="Provide either public_id or private_id, not both",
+        )
+
+    project = await get_by_public_id(db, Project, public_id) if public_id else await get_by_id(db, Project, private_id)
+
+    if not project:
+        return []
+
+    result = await db.scalars(
+        select(User)
+        .where(
+            User.project_id == project.id,
+            User.is_active.is_(True),
+        )
+        .order_by(User.id)
+    )
+
+    return result.all()
+
+
+async def get_project_id_by_public_id(
+    public_id: UUID,
+    db: AsyncSession,
+):
+    project_public_id = (
+        await db.execute(
+            select(Project).where(
+                Project.public_id == public_id,
+                Project.is_active.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if not project_public_id:
+        raise AppException(
+            code="INTERNAL_ERROR",
+            i18n_key="errors.internal_server_error",
+            status_code=500,
+            detail="Project not found",
+        )
+    return project_public_id.id
 
 
 async def list_projects(

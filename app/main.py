@@ -92,10 +92,10 @@ app = FastAPI(
     swagger_ui_parameters={
         "persistAuthorization": True,
         "displayRequestDuration": True,
-        "docExpansion": "none",   # none | list | full
+        # "docExpansion": "none",   # none | list | full
         "defaultModelsExpandDepth": -1,
         "tryItOutEnabled": True,
-        "filter": True,
+        # "filter": True,
         "deepLinking": True,
         "showExtensions": True,
 

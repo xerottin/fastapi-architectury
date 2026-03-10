@@ -5,7 +5,7 @@ from starlette import status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth.dependencies import get_current_user
-from services.user import create_user, get_project_users, update_user, delete_user
+from services.user import create_user, update_user, delete_user
 from db.session import get_pg_db
 from models import User
 from schemas.user import AuthResponse, UserCreateRequest, UserResponse, UserUpdateRequest
@@ -23,12 +23,6 @@ async def create_user_endpoint(
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
 
-@router.get("/project", response_model=list[UserResponse], status_code=status.HTTP_200_OK)
-async def get_project_users_endpoint(
-    db: AsyncSession = Depends(get_pg_db),
-    current_user: User = Depends(get_current_user),
-):
-    return await get_project_users(db, private_id=current_user.project_id)
 
 @router.patch("/{public_id}", response_model=UserResponse)
 async def update_user_endpoint(
