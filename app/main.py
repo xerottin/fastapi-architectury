@@ -87,7 +87,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name or "Zehn-Architectury-API",
     description="Zehn Architectury API",
-    docs_url="/fast-arch",
+    root_path="/fast-arch",
+    docs_url="/docs",
     redoc_url=None,
     openapi_url="/openapi.json",
     version=settings.app_version,
