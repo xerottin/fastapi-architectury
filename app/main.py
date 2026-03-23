@@ -7,17 +7,18 @@ from contextvars import ContextVar
 import sentry_sdk
 from api import router as api_router
 from core.config import settings
-from core.dependencies import get_minio_service
 from core.exceptions import AppException
-from db.session import async_session
+from db.clients.mongo import MongodbServices
+from db.clients.redis import RedisServices
+from db.session import async_engine
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from sentry_sdk.integrations.fastapi import FastApiIntegration
-from sqlalchemy import text
 
+from services.check_health import _check_database, _check_redis, _check_mongodb, _check_minio, _service_status
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def init_sentry() -> None:
 
     sentry_sdk.init(
         dsn=settings.sentry_dsn,
-        send_default_pii=True,
+        send_default_pii=False,
         environment=settings.environment,
         traces_sample_rate=0.1,
         profiles_sample_rate=0.1,
@@ -43,75 +44,74 @@ def init_sentry() -> None:
     )
 
 
-# ── Service readiness flags (graceful degradation) ───────────────────
-_service_status: dict[str, bool] = {
-    "database": True,
-    "minio": False,
-    "mongodb": False,
-    "redis": False,
-}
 
 
 # ── Lifespan ─────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
+
     init_sentry()
-    logger.info("Sentry initialized")
 
-    try:
-        async with async_session.begin() as conn:
-            await conn.execute(text("SELECT 1"))
-        _service_status["database"] = True
-        logger.info("Database connection OK")
-    except Exception as e:
-        logger.error("Database connection failed: %s", e)
-        raise
+    # Critical: database must be available
+    await _check_database()
 
-    try:
-        minio_client = get_minio_service()
-        # MinioService.init_bucket(
-        #     minio_client,
-        #     settings.minio_bucket,
-        #     auto_public=True,
-        # )
-        _service_status["minio"] = True
-        logger.info("MinIO buckets ready")
-    except Exception as e:
-        _service_status["minio"] = False
-        logger.warning("MinIO startup failed (degraded mode): %s", e)
+    # Non-critical: log warning and continue
+    await _check_redis()
+    await _check_mongodb()
+    _check_minio()
+
+    logger.info("Startup complete — services: %s", _service_status)
+
     yield
+
+    # ── Shutdown ──────────────────────────────────────────────────────
+    logger.info("Application shutting down...")
+
+    await async_engine.dispose()
+    logger.info("Database engine disposed")
+
+    try:
+        redis = RedisServices.get_redis_client()
+        await redis.aclose()
+        logger.info("Redis connection closed")
+    except Exception as e:
+        logger.warning("Redis close error: %s", e)
+
+    try:
+        client = MongodbServices.get_client()
+        client.close()
+        logger.info("MongoDB connection closed")
+    except Exception as e:
+        logger.warning("MongoDB close error: %s", e)
+
+    logger.info("Shutdown complete")
 
 
 # ── App ──────────────────────────────────────────────────────────────
 app = FastAPI(
-    title=settings.app_name or "Zehn-Architectury-API",
-    description="Zehn Architectury API",
-    root_path="/fast-arch",
+    title=settings.app_name or "Fast-Architectury-API",
+    description="Fast Architectury API",
+    root_path=settings.root_path,
     redoc_url=None,
-    openapi_url="/openapi.json",
+    docs_url="/docs" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
     version=settings.app_version,
     lifespan=lifespan,
     swagger_ui_parameters={
         "persistAuthorization": True,
         "displayRequestDuration": True,
-        # "docExpansion": "none",   # none | list | full
         "defaultModelsExpandDepth": -1,
         "tryItOutEnabled": True,
-        # "filter": True,
         "deepLinking": True,
         "showExtensions": True,
-
-    }
-    # docs_url="/docs" if settings.debug else None,
-    # redoc_url="/redoc" if settings.debug else None,
-    # openapi_url="/openapi.json" if settings.debug else None,
+    },
 )
 
 
 # ── Middleware (order matters: outermost first) ──────────────────────
 
-# 1. Security: Trusted hosts (защита от Host header injection)
+# 1. Security: Trusted hosts
 if not settings.debug:
     app.add_middleware(
         TrustedHostMiddleware,
@@ -124,7 +124,7 @@ app.add_middleware(GZipMiddleware, minimum_size=settings.gzip_minimum_size)
 # 3. CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
     allow_headers=["*"],
@@ -135,17 +135,16 @@ app.add_middleware(
 # ── Request middleware ───────────────────────────────────────────────
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next):
-    """Log requests with ID, timing, status, and rate limiting."""
-    request_id = str(uuid.uuid4())
+    """Log requests with ID, timing, and status."""
+    # Reuse upstream request ID or generate new one
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     request.state.request_id = request_id
     request_id_ctx.set(request_id)
 
     client_ip = request.client.host if request.client else "unknown"
 
-
     start_time = time.perf_counter()
 
-    # Log incoming request
     logger.info(
         "→ %s %s",
         request.method,
@@ -171,7 +170,6 @@ async def request_logging_middleware(request: Request, call_next):
 
     process_time = time.perf_counter() - start_time
 
-    # Log response
     logger.info(
         "← %s %s %s [%.2fms]",
         response.status_code,
@@ -185,47 +183,13 @@ async def request_logging_middleware(request: Request, call_next):
         },
     )
 
-    # Add headers
     response.headers["X-Request-ID"] = request_id
     response.headers["X-Process-Time"] = f"{process_time:.6f}s"
 
     return response
 
-# ── Health / Readiness ───────────────────────────────────────────────
-@app.get("/health", tags=["infra"])
-async def health_check():
-    """Liveness probe — app is running."""
-    return {"status": "okay_1"}
-
-
-@app.get("/ready", tags=["infra"])
-async def readiness_check():
-    """Readiness probe — checks all dependencies."""
-    checks: dict[str, str] = {}
-
-    # Database
-    try:
-        async with async_session.begin() as conn:
-            await conn.execute(text("SELECT 1"))
-        checks["database"] = "ok"
-    except Exception:
-        checks["database"] = "unavailable"
-
-    # MinIO
-    checks["minio"] = "ok" if _service_status["minio"] else "unavailable"
-
-
-
-# ── Debug routes ─────────────────────────────────────────────────────
-if settings.debug:
-
-    @app.get("/sentry-debug", tags=["infra"])
-    async def trigger_error():
-        1 / 0
-
 # ── Routes ───────────────────────────────────────────────────────────
 app.include_router(api_router)
-
 
 
 # ── Exception handlers ──────────────────────────────────────────────
@@ -243,4 +207,21 @@ async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"error": exc.detail, "request_id": rid},
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    rid = getattr(request.state, "request_id", "unknown")
+    logger.exception(
+        "Unhandled exception: %s",
+        exc,
+        extra={"request_id": rid},
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "request_id": rid,
+        },
     )

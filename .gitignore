@@ -16,6 +16,7 @@ ruff.toml
 .pre-commit-config.yaml
 index.html
 pyproject.toml
+.env
 
 # C extensions
 *.so
@@ -178,3 +179,5 @@ cython_debug/
 
 CLAUDE.md
 .claude
+landing.html
+aefawe.txt

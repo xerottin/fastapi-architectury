@@ -9,18 +9,17 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Zehn Backend"
     app_version: str = "1.0.0"
-    access_token_expire_minutes: int = 600
-    secret_key: str = "your_secret_key"
-    algorithm: str = "HS256"
+    root_path: str = ""
     rate_limit_max_requests: int = 1000
     rate_limit_window_seconds: int = 600
-    gzip_minimum_size: int = 1
+    gzip_minimum_size: int = 500
     cors_max_age: int = 3600
+    cors_origins: List[str] = ["http://localhost:3000"]
     allowed_hosts: List[str] = ["*"]
 
     sentry_dsn: str | None = None
     debug: bool = True
-    environment: str = "local"  # production
+    environment: str = "local"
 
     # JWT
     jwt_secret_key: str = "your-secret-key-change-in-production"
@@ -28,62 +27,60 @@ class Settings(BaseSettings):
     jwt_access_token_expire_minutes: int = 10080
     jwt_refresh_token_expire_hours: int = 168
 
-
+    # Database
     db_host: str = "localhost"
     db_port: int = 5432
     db_user: str = "postgres"
-    db_pass: str = "ping1234"
+    db_pass: str = "postgres"
     db_name: str = "zehn_arch_backend_db"
 
     @property
-    def database_url_asyncpg(self):
-        # postgresql+asyncpg://postgres:postgres@localhost:5432/sa
+    def database_url_asyncpg(self) -> str:
         return f"postgresql+asyncpg://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
 
     @property
-    def database_url_psycopg(self):
-        # DSN
-        # postgresql+psycopg://postgres:postgres@localhost:5432/sa
+    def database_url_psycopg(self) -> str:
         return f"postgresql+psycopg2://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}"
 
-    # URLs
+    # OpenAI
+    openai_api_key: str = ""
 
-    openai_api_key: str = "Your open_ai api-key"
-
-    # MINIO
-
+    # MinIO
     minio_endpoint: str = "localhost:9211"
     minio_public_url: str = "http://localhost:9211"
-    minio_access_key: str = "your-access-key"
-    minio_secret_key: str = "your-secret-key"
+    minio_access_key: str = "minioadmin"
+    minio_secret_key: str = "minioadmin"
     minio_secure: bool = False
     aws_storage_region: str = "us-east-1"
-    # minio buckets
     minio_bucket: str = "minio_bucket"
 
-    # redis
+    # Redis
     redis_url: str = "redis://localhost:6379"
 
-    # mongo
+    # MongoDB
     mongo_uri: str = "mongodb://root:example@mongo:27017/admin"
     mongo_db_name: str = "zehn_architectury"
 
-    # celery
+    # Celery
     celery_broker_url: str = "redis://localhost:6379"
     celery_result_backend: str = "redis://localhost:6379"
 
-    # celery sentry
+    # Sentry (Celery)
     sentry_dsn_celery: str = ""
     sentry_traces_sample_rate: str = ""
     sentry_profiles_sample_rate: str = ""
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+        env_file_encoding="utf-8",
+    )
 
 
 @lru_cache
 def get_settings() -> Settings:
-    """Get cached settings instance."""
     return Settings()
 
 
-settings = Settings()
+settings = get_settings()
