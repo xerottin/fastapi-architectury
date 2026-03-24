@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from auth.jwt import verify_token
 from core.exceptions import AppException
 from db.session import get_pg_db
@@ -19,19 +21,23 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
+from uuid import UUID
+from sqlalchemy import select
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_pg_db),
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
     oauth_token: str | None = Depends(oauth2_scheme),
 ) -> User:
-    """Allow authentication via either HTTPBearer or OAuth2PasswordBearer"""
 
+    token = None
     if credentials and credentials.credentials:
         token = credentials.credentials
     elif oauth_token:
         token = oauth_token
-    else:
+
+    if not token:
         raise AppException(
             code="MISSING_CREDENTIALS",
             status_code=HTTP_401_UNAUTHORIZED,
@@ -40,40 +46,50 @@ async def get_current_user(
 
     try:
         payload = verify_token(token)
-        user_id = int(payload.get("sub"))
-        role = payload.get("role")
-
-        result = await db.scalars(select(User).where(User.id == user_id))
-        user: User | None = result.one_or_none()
-
-        if not user:
-            raise AppException(
-                code="USER_NOT_FOUND",
-                status_code=HTTP_401_UNAUTHORIZED,
-                detail="User not found",
-            )
-        if not user.is_active:
-            raise AppException(
-                code="USER_INACTIVE",
-                status_code=HTTP_403_FORBIDDEN,
-                detail="User inactive",
-            )
-
-        request.state.current_user = user
-        request.state.current_role = role or user.role
-        return user
-
-    except ExpiredSignatureError as e:
-        raise AppException(
-            code="TOKEN_EXPIRED",
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail="Token expired",
-        ) from e
-    except JWTError as e:
-        print(e)
+    except Exception:
         raise AppException(
             code="INVALID_TOKEN",
             status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
-        ) from e
+            detail="Invalid or expired token",
+        )
 
+    if not payload or "sub" not in payload:
+        raise AppException(
+            code="INVALID_TOKEN",
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    try:
+        user_id = UUID(payload["sub"])
+    except (ValueError, TypeError):
+        raise AppException(
+            code="INVALID_TOKEN",
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid user identifier",
+        )
+
+    result = await db.scalars(
+        select(User).where(User.public_id == user_id)
+    )
+    user: User | None = result.one_or_none()
+
+    if not user:
+        raise AppException(
+            code="USER_NOT_FOUND",
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+
+    if not user.is_active:
+        raise AppException(
+            code="USER_INACTIVE",
+            status_code=HTTP_403_FORBIDDEN,
+            detail="User inactive",
+        )
+
+    # only trust DB
+    request.state.current_user = user
+    request.state.current_role = user.role
+
+    return user
