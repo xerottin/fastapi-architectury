@@ -71,7 +71,7 @@ services:
       - fast-architectury-net
 
   fastapi:
-    image: ghcr.io/xerottin/fastapi-architectury:latest
+    image: fastapi-architectury
     container_name: fast_architectury_fastapi
     environment:
       APP_NAME: Zehn-Arch
@@ -148,7 +148,7 @@ services:
       - fast-architectury-net
 
   worker:
-    image: ghcr.io/xerottin/fastapi-architectury:latest
+    image: fastapi-architectury
     container_name: fast_architectury_worker
     env_file:
       - .env
