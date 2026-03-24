@@ -71,7 +71,8 @@ services:
       - fast-architectury-net
 
   fastapi:
-    image: fast_architectury_fastapi
+    build: ./app
+    image: fastapi-architectury
     container_name: fast_architectury_fastapi
     env_file:
       - .env
@@ -150,7 +151,8 @@ services:
       - fast-architectury-net
 
   worker:
-    image: fast_architectury_worker
+    build: ./app
+    image: fastapi-architectury
     container_name: fast_architectury_worker
     env_file:
       - .env
