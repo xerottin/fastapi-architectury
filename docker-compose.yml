@@ -114,13 +114,14 @@ services:
 #
 #      REDIS_URL: redis://redis:6379/0
 #
-#      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
-#      CELERY_RESULT_BACKEND: redis://redis:6379/1
-#
 #      MONGO_URI: mongodb://root:example@mongo:27017/admin
 #      MONGO_DB_NAME: fast_architectury
 #      MONGO_INITDB_ROOT_USERNAME: admin
 #      MONGO_INITDB_ROOT_PASSWORD: strongpassword123
+#
+#      CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
+#      CELERY_RESULT_BACKEND: redis://redis:6379/1
+
     ports:
       - "8001:8000"
     depends_on:
