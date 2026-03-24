@@ -111,11 +111,11 @@ app = FastAPI(
 # ── Middleware (order matters: outermost first) ──────────────────────
 
 # 1. Security: Trusted hosts
-if not settings.debug:
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=settings.allowed_hosts,
-    )
+# if not settings.debug:
+#     app.add_middleware(
+#         TrustedHostMiddleware,
+#         allowed_hosts=settings.allowed_hosts,
+#     )
 
 # 2. Performance: GZip compression
 app.add_middleware(GZipMiddleware, minimum_size=settings.gzip_minimum_size)
