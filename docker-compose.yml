@@ -116,6 +116,8 @@ services:
 
       MONGO_URI: mongodb://root:example@mongo:27017/admin
       MONGO_DB_NAME: fast_architectury
+      MONGO_INITDB_ROOT_USERNAME=admin
+      MONGO_INITDB_ROOT_PASSWORD=strongpassword123
     ports:
       - "8001:8000"
     depends_on:
