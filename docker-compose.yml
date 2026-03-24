@@ -71,8 +71,9 @@ services:
       - fast-architectury-net
 
   fastapi:
-    image: fastapi-architectury
     container_name: fast_architectury_fastapi
+    env_file:
+      - .env
     environment:
       APP_NAME: Zehn-Arch
       APP_VERSION: 1.0.0
@@ -148,7 +149,6 @@ services:
       - fast-architectury-net
 
   worker:
-    image: fastapi-architectury
     container_name: fast_architectury_worker
     env_file:
       - .env
@@ -185,13 +185,13 @@ services:
     networks:
       - fast-architectury-net
 
-  watchtower:
-    image: containrrr/watchtower
-    container_name: watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 60
-    restart: unless-stopped
+#  watchtower:
+#    image: containrrr/watchtower
+#    container_name: watchtower
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    command: --interval 60
+#    restart: unless-stopped
 
 volumes:
   postgres_data:
@@ -201,4 +201,4 @@ volumes:
 
 networks:
   fast-architectury-net:
-    driver: bridge
+    external: true
