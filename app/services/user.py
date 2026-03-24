@@ -42,7 +42,7 @@ async def create_user(db: AsyncSession, data: UserCreateRequest) -> User:
         await db.flush()
 
         # Use public_id for tokens now
-        token_data = {"sub": str(user.id), "role": data.role}
+        token_data = {"sub": str(user.public_id), "role": data.role}
 
         access_token = create_access_token(token_data)
         refresh_token = create_refresh_token(token_data)

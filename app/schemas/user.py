@@ -86,6 +86,11 @@ class UserCreateRequest(BaseModel):
     def validate_password(cls, v: str) -> str:
         return validate_password_strength(v)
 
+class UserSingInRequest(BaseModel):
+    email: str | None = None
+    username: str = None
+    password: str = None
+
 
 class UserUpdateRequest(BaseModel):
 
