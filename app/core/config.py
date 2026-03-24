@@ -7,7 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
 
     # Application
-    app_name: str = "Zehn Backend"
+    app_name: str = "Fast-Arch Backend"
     app_version: str = "1.0.0"
     root_path: str = ""
     rate_limit_max_requests: int = 1000

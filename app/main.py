@@ -50,7 +50,6 @@ def init_sentry() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
-    logger.info(f"Current environment: {settings.environment}")
 
     init_sentry()
 
@@ -94,8 +93,8 @@ app = FastAPI(
     description="Fast Architectury API",
     root_path=settings.root_path,
     redoc_url=None,
-    docs_url="/docs" if settings.debug else None,
-    openapi_url="/openapi.json" if settings.debug else None,
+    docs_url="/docs",
+    openapi_url="/openapi.json",
     version=settings.app_version,
     lifespan=lifespan,
     swagger_ui_parameters={
