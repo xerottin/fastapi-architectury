@@ -20,6 +20,7 @@ from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 from services.check_health import _check_database, _check_redis, _check_mongodb, _check_minio, _service_status
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── Context var for request correlation ID ───────────────────────────
@@ -30,6 +31,7 @@ request_id_ctx: ContextVar[str] = ContextVar("request_id", default="-")
 def init_sentry() -> None:
     if settings.environment != "production":
         return
+    logger.info("Environment is set to production")
 
     if not settings.sentry_dsn:
         return
@@ -44,12 +46,11 @@ def init_sentry() -> None:
     )
 
 
-
-
 # ── Lifespan ─────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Application starting up...")
+    logger.info(f"Current environment: {settings.environment}")
 
     init_sentry()
 
@@ -79,8 +80,7 @@ async def lifespan(app: FastAPI):
         logger.warning("Redis close error: %s", e)
 
     try:
-        client = MongodbServices.get_client()
-        client.close()
+        await MongodbServices.close()
         logger.info("MongoDB connection closed")
     except Exception as e:
         logger.warning("MongoDB close error: %s", e)

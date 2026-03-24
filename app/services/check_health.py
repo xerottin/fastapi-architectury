@@ -11,10 +11,10 @@ from db.session import async_session
 logger = logging.getLogger(__name__)
 # ── Service readiness flags (graceful degradation) ───────────────────
 _service_status: dict[str, bool] = {
-    "database": False,
-    "minio": False,
-    "mongodb": False,
-    "redis": False,
+    "database": True,
+    "minio": True,
+    "mongodb": True,
+    "redis": True,
 }
 
 # ── Startup health checks ───────────────────────────────────────────

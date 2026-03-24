@@ -2,46 +2,46 @@ services:
 
   postgres:
     image: postgres:16
-    container_name: zehn_architectury_postgres
+    container_name: fast_architectury_postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-zehn_architectury_db}
-      POSTGRES_USER: ${POSTGRES_USER:-zehn_architectury_admin}
+      POSTGRES_DB: ${POSTGRES_DB:-fast_architectury_db}
+      POSTGRES_USER: ${POSTGRES_USER:-fast_architectury_admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ping1234}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5438:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zehn_architectury_admin} -d ${POSTGRES_DB:-zehn_architectury_db}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fast_architectury_admin} -d ${POSTGRES_DB:-fast_architectury_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
     networks:
-      - zehn-architectury-net
+      - fast-architectury-net
 
-  mongo:
-    image: mongo:7
-    container_name: zehn_architectury_mongo
-    ports:
-      - "27049:27017"
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-example}
-      TZ: ${TZ:-Asia/Tashkent}
-    volumes:
-      - mongo_data:/data/db
-    healthcheck:
-      test: ["CMD-SHELL", "echo 'db.runCommand({ ping: 1 })' | mongosh --username ${MONGO_INITDB_ROOT_USERNAME:-root} --password ${MONGO_INITDB_ROOT_PASSWORD:-example} --authenticationDatabase admin --quiet || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-    restart: unless-stopped
-    networks:
-      - zehn-architectury-net
+#  mongo:
+#    image: mongo:7
+#    container_name: fast_architectury_mongo
+#    ports:
+#      - "27049:27017"
+#    environment:
+#      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-root}
+#      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-example}
+#      TZ: ${TZ:-Asia/Tashkent}
+#    volumes:
+#      - mongo_data:/data/db
+#    healthcheck:
+#      test: ["CMD-SHELL", "echo 'db.runCommand({ ping: 1 })' | mongosh --username ${MONGO_INITDB_ROOT_USERNAME:-root} --password ${MONGO_INITDB_ROOT_PASSWORD:-example} --authenticationDatabase admin --quiet || exit 1"]
+#      interval: 15s
+#      timeout: 10s
+#      retries: 5
+#    restart: unless-stopped
+#    networks:
+#      - fast-architectury-net
 
   redis:
     image: redis:7-alpine
-    container_name: zehn_architectury_redis
+    container_name: fast_architectury_redis
     ports:
       - "6379:6379"
     volumes:
@@ -53,11 +53,11 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - zehn-architectury-net
+      - fast-architectury-net
 
   rabbitmq:
     image: rabbitmq:3-management-alpine
-    container_name: zehn_architectury_rabbitmq
+    container_name: fast_architectury_rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -68,11 +68,11 @@ services:
       retries: 5
     restart: unless-stopped
     networks:
-      - zehn-architectury-net
+      - fast-architectury-net
 
   minio:
     image: minio/minio
-    container_name: zehn_architectury_minio
+    container_name: fast_architectury_minio
     ports:
       - "9001:9000"
       - "9211:9211"
@@ -84,21 +84,21 @@ services:
       - minio_data:/data
     restart: unless-stopped
     networks:
-      - zehn-architectury-net
+      - fast-architectury-net
 
   worker:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: zehn_architectury_worker
+    container_name: fast_architectury_worker
     working_dir: /app
     command: celery -A worker.celery_app:celery_app worker -l info
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-zehn_architectury_admin}
+      DB_USER: ${POSTGRES_USER:-fast_architectury_admin}
       DB_PASS: ${POSTGRES_PASSWORD:-ping1234}
-      DB_NAME: ${POSTGRES_DB:-zehn_architectury_db}
+      DB_NAME: ${POSTGRES_DB:-fast_architectury_db}
 
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: amqp://guest:guest@rabbitmq:5672/
@@ -123,7 +123,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - zehn-architectury-net
+      - fast-architectury-net
 
 volumes:
   postgres_data:
@@ -132,5 +132,5 @@ volumes:
   minio_data:
 
 networks:
-  zehn-architectury-net:
+  fast-architectury-net:
     driver: bridge

@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     db_port: int = 5432
     db_user: str = "postgres"
     db_pass: str = "postgres"
-    db_name: str = "zehn_arch_backend_db"
+    db_name: str = "fast_arch_backend_db"
 
     @property
     def database_url_asyncpg(self) -> str:
@@ -59,7 +59,7 @@ class Settings(BaseSettings):
 
     # MongoDB
     mongo_uri: str = "mongodb://root:example@mongo:27017/admin"
-    mongo_db_name: str = "zehn_architectury"
+    mongo_db_name: str = "fast_architectury"
 
     # Celery
     celery_broker_url: str = "redis://localhost:6379"
