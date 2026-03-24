@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = "Fast-Arch Backend"
     app_version: str = "1.0.0"
-    # root_path: str = ""
+    root_path: str = ""
     rate_limit_max_requests: int = 1000
     rate_limit_window_seconds: int = 600
     gzip_minimum_size: int = 500
