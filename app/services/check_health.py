@@ -1,4 +1,7 @@
 import logging
+
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
 from sqlalchemy import text
 
 from core.dependencies import get_minio_service
@@ -32,6 +35,12 @@ async def _check_redis() -> None:
         redis = RedisServices.get_redis_client()
         await redis.ping()
         _service_status["redis"] = True
+
+        FastAPICache.init(
+            RedisBackend(redis),
+            prefix="fastapi-cache"
+        )
+
         logger.info("Redis connection OK")
     except Exception as e:
         _service_status["redis"] = False

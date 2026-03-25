@@ -1,6 +1,8 @@
 import logging
 from uuid import UUID
 
+from fastapi_cache import FastAPICache
+
 from core.exceptions import AppException
 from services.base import get_by_public_id, get_by_id
 from models import Project, User
@@ -43,6 +45,7 @@ async def create_project(
         db.add(project)
         await db.commit()
         await db.refresh(project)
+        await FastAPICache.clear(namespace='project:list')
 
         return project
 
@@ -138,6 +141,7 @@ async def list_projects(
     db: AsyncSession,
     current_user: User,
 ) -> list[Project]:
+    print(f'current_user_id: {current_user.id}')
     result = await db.execute(
         select(Project).where(
             Project.owner_id == current_user.id,
@@ -146,19 +150,6 @@ async def list_projects(
     )
 
     return result.scalars().all()
-
-
-async def my_project(
-    db: AsyncSession,
-    current_user: User,
-) -> Project:
-    result = await db.execute(
-        select(Project).where(
-            Project.id == current_user.project_id,
-            Project.is_active,
-        )
-    )
-    return result.scalar_one_or_none()
 
 
 async def get_project(
@@ -198,6 +189,7 @@ async def update_project(
 
         await db.commit()
         await db.refresh(project)
+        await FastAPICache.clear(namespace='project:list')
 
         return project
 
@@ -236,6 +228,7 @@ async def delete_project(
     try:
         project.is_active = False
         await db.commit()
+        await FastAPICache.clear(namespace='project:list')
 
     except AppException:
         raise
