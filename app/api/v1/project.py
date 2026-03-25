@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from fastapi_cache.decorator import cache
@@ -25,7 +24,6 @@ async def create_project_endpoint(
 
 
 @router.get("/list", response_model=list[ProjectResponse], status_code=status.HTTP_200_OK)
-@cache(expire=60, namespace='project:list')
 async def list_projects_endpoint(
     db: AsyncSession = Depends(get_pg_db),
     current_user: User = Depends(get_current_user),
@@ -36,8 +34,7 @@ async def list_projects_endpoint(
     return await list_projects(db, current_user)
 
 
-@router.get("/users", response_model=list[UserResponse], status_code=status.HTTP_200_OK)
-@cache(expire=60, namespace='project:users')
+@router.get("/users", response_model=list[UserResponse], status_code=status.HTTP_200_OK, deprecated=True)
 async def get_project_users_endpoint(
     db: AsyncSession = Depends(get_pg_db),
     current_user: User = Depends(get_current_user),

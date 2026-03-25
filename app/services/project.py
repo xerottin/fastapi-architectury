@@ -1,14 +1,14 @@
 import logging
 from uuid import UUID
 
-from fastapi_cache import FastAPICache
-
 from core.exceptions import AppException
 from services.base import get_by_public_id, get_by_id
 from models import Project, User
-from schemas.project import ProjectCreate, ProjectUpdate
+from schemas.project import ProjectCreate, ProjectUpdate, ProjectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from services.cache.project_cache import ProjectCache
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ async def create_project(
         db.add(project)
         await db.commit()
         await db.refresh(project)
-        await FastAPICache.clear(namespace='project:list')
+        await ProjectCache.invalidate(current_user.id)
 
         return project
 
@@ -137,19 +137,22 @@ async def get_project_id_by_public_id(
     return project_public_id.id
 
 
-async def list_projects(
-    db: AsyncSession,
-    current_user: User,
-) -> list[Project]:
-    print(f'current_user_id: {current_user.id}')
+async def list_projects(db: AsyncSession, current_user: User) -> list[Project]:
+    cached = await ProjectCache.get(current_user.id)
+    if cached is not None:
+        return [ProjectResponse(**item) for item in cached]
+
     result = await db.execute(
         select(Project).where(
             Project.owner_id == current_user.id,
             Project.is_active.is_(True),
         )
     )
+    projects = result.scalars().all()
 
-    return result.scalars().all()
+    serialized = [ProjectResponse.model_validate(p).model_dump(mode="json") for p in projects]
+    await ProjectCache.set(current_user.id, serialized)
+    return projects
 
 
 async def get_project(
@@ -189,7 +192,7 @@ async def update_project(
 
         await db.commit()
         await db.refresh(project)
-        await FastAPICache.clear(namespace='project:list')
+        await ProjectCache.invalidate(current_user.id)
 
         return project
 
@@ -228,7 +231,7 @@ async def delete_project(
     try:
         project.is_active = False
         await db.commit()
-        await FastAPICache.clear(namespace='project:list')
+        await ProjectCache.invalidate(current_user.id)
 
     except AppException:
         raise
