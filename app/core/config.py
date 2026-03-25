@@ -62,9 +62,7 @@ class Settings(BaseSettings):
     mongo_db_name: str = "fast_architectury"
 
     # Celery
-    celery_broker_url: str = "redis://localhost:6379"
-    celery_result_backend: str = "redis://localhost:6379"
-
+    rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672//"
     # Sentry (Celery)
     sentry_dsn_celery: str = ""
     sentry_traces_sample_rate: str = ""
