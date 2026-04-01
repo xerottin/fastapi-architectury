@@ -1,7 +1,5 @@
 from uuid import UUID
 
-from fastapi_cache.decorator import cache
-
 from auth.dependencies import get_current_user
 from schemas.user import UserResponse
 from services.project import create_project, delete_project, get_project, list_projects, update_project, get_project_users
