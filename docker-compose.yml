@@ -98,7 +98,7 @@ services:
     container_name: fast_architectury_worker
     env_file:
       - .env
-    command: celery -A worker.celery_app:celery_app worker -l info
+    command: celery -A worker.celery_app:celery_app worker --loglevel=info
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,13 +110,6 @@ services:
     networks:
       - fast-architectury-net
 
-#  watchtower:
-#    image: containrrr/watchtower
-#    container_name: watchtower
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock
-#    command: --interval 60
-#    restart: unless-stopped
 
 volumes:
   postgres_data:
