@@ -46,3 +46,6 @@ motor==3.7.1
 
 # === LLM ===
 openai==2.13.0
+
+# Email
+resend

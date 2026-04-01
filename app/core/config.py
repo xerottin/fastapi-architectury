@@ -63,6 +63,13 @@ class Settings(BaseSettings):
 
     # Celery
     rabbitmq_url: str = "amqp://guest:guest@rabbitmq:5672//"
+
+    #Resend
+    resend_api_key: str = ""
+    email_from: str = "contacts@xerottin.uz"
+    email_from_name: str = "Fast-Arch"
+
+
     # Sentry (Celery)
     sentry_dsn_celery: str = ""
     sentry_traces_sample_rate: str = ""

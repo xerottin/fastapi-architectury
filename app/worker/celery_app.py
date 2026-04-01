@@ -1,5 +1,6 @@
 import sentry_sdk
 from celery import Celery
+from celery.schedules import crontab
 from sentry_sdk.integrations.celery import CeleryIntegration
 from kombu import Exchange, Queue
 
@@ -34,8 +35,15 @@ celery_app = Celery(
     "fastapi_app",
     broker=settings.rabbitmq_url,
     # backend="rpc://",
-    include=["app.tasks.notifications"],
+    include=["tasks.resend_task"],
 )
+
+celery_app.conf.beat_schedule = {
+    "weekly-newsletter": {
+        "task": "tasks.resend_task.send_weekly_newsletter",
+        "schedule": crontab(hour=10, minute=0, day_of_week=1),
+    },
+}
 
 celery_app.conf.update(
     task_queues=task_queues,
