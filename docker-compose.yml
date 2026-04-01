@@ -33,6 +33,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: fast_architectury_rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "check_running"]
       interval: 10s
