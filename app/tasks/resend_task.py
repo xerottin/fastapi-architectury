@@ -23,7 +23,7 @@ def send_weekly_newsletter(self):
     for user in users:
         try:
             resend.Emails.send({
-                "from": f"{settings.email_from_name} <{settings.email_from}>",
+                "from": settings.email_from,
                 "to": user.email,
                 "subject": "Еженедельный дайджест",
                 "html": _build_newsletter_html(user),

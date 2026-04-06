@@ -24,7 +24,7 @@ async def send_email_endpoint(payload: EmailSendRequest):
 @router.post("/send")
 async def send_email(body: EmailSendRequest):
     try:
-        params: resend.Emails.SendParams = {
+        params: resend.Emails.send = {
             "from": settings.email_from,
             "to": [body.email],
             "subject": body.subject,
