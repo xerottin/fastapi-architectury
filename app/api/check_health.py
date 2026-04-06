@@ -13,19 +13,19 @@ router = APIRouter()
 # ── Debug routes ─────────────────────────────────────────────────────
 if settings.debug:
 
-    @router.get("/sentry-debug", tags=["infra"])
+    @router.get("/sentry-debug")
     async def trigger_error():
         1 / 0
 
 
 
-@router.get("/health", tags=["infra"])
+@router.get("/health")
 async def health_check():
     """Liveness probe — app is running."""
     return {"status": "ok"}
 
 
-@router.get("/ready", tags=["infra"])
+@router.get("/ready")
 async def readiness_check(_service_status=None):
     """Readiness probe — checks all dependencies."""
     checks: dict[str, str] = {}
