@@ -33,4 +33,8 @@ async def send_email(body: EmailSendRequest):
         response = resend.Emails.send(params)
         return {"message": "Письмо отправлено", "id": response["id"]}
     except Exception as e:
-        raise AppException(status_code=500, detail=str(e))
+        raise AppException(
+            code="email_send_failed",
+            detail=str(e),
+            status_code=500,
+        )
