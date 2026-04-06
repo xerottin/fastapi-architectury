@@ -50,7 +50,11 @@ async def create_user(db: AsyncSession, data: UserCreateRequest) -> User:
         await db.commit()
         await db.refresh(user)
 
-        send_welcome_email.delay(user.email, user.username)
+        try:
+            send_welcome_email.delay(user.email, user.username)
+            logger.info("Welcome email task queued for %s", user.email)
+        except Exception as exc:
+            logger.error("Failed to queue welcome email for %s: %s", user.email, exc)
 
         return {"user": user, "tokens": {"access_token": access_token, "refresh_token": refresh_token}}
 

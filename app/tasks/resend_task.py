@@ -46,22 +46,25 @@ def send_custom_email(self, to: str, subject: str, html: str):
         raise self.retry(exc=e)
 
 
-def _build_newsletter_html(user) -> str:
-    return f"<h2>Привет, {user.name}!</h2><p>Вот твой еженедельный дайджест...</p>"
-
-
 @shared_task(bind=True, max_retries=3)
 def send_welcome_email(self, to: str, username: str):
     """Send a welcome email to a newly registered user."""
+    logger.info("Sending welcome email to %s (username=%s)", to, username)
     try:
-        resend.Emails.send({
+        response = resend.Emails.send({
             "from": f"{settings.email_from_name} <{settings.email_from}>",
             "to": to,
             "subject": "Welcome to Fast-Arch!",
             "html": _build_welcome_html(username),
         })
+        logger.info("Welcome email sent successfully to %s, id=%s", to, response.get("id"))
     except Exception as e:
+        logger.error("Failed to send welcome email to %s: %s", to, e)
         raise self.retry(exc=e)
+
+
+def _build_newsletter_html(user) -> str:
+    return f"<h2>Привет, {user.name}!</h2><p>Вот твой еженедельный дайджест...</p>"
 
 
 def _build_welcome_html(username: str) -> str:
