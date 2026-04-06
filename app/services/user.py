@@ -4,6 +4,7 @@ import uuid
 from uuid import UUID
 
 from auth.jwt import create_access_token, create_refresh_token, hash_password, verify_password
+from tasks.resend_task import send_welcome_email
 from core.exceptions import AppException
 from services.base import get_by_public_id
 from models.user import User
@@ -48,6 +49,8 @@ async def create_user(db: AsyncSession, data: UserCreateRequest) -> User:
         refresh_token = create_refresh_token(token_data)
         await db.commit()
         await db.refresh(user)
+
+        send_welcome_email.delay(user.email, user.username)
 
         return {"user": user, "tokens": {"access_token": access_token, "refresh_token": refresh_token}}
 

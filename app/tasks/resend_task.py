@@ -48,3 +48,28 @@ def send_custom_email(self, to: str, subject: str, html: str):
 
 def _build_newsletter_html(user) -> str:
     return f"<h2>Привет, {user.name}!</h2><p>Вот твой еженедельный дайджест...</p>"
+
+
+@shared_task(bind=True, max_retries=3)
+def send_welcome_email(self, to: str, username: str):
+    """Send a welcome email to a newly registered user."""
+    try:
+        resend.Emails.send({
+            "from": f"{settings.email_from_name} <{settings.email_from}>",
+            "to": to,
+            "subject": "Welcome to Fast-Arch!",
+            "html": _build_welcome_html(username),
+        })
+    except Exception as e:
+        raise self.retry(exc=e)
+
+
+def _build_welcome_html(username: str) -> str:
+    return f"""
+    <h2>Welcome to Fast-Arch, {username}!</h2>
+    <p>We're excited to have you on board.</p>
+    <p>Your account has been successfully created. You can now log in and start using the platform.</p>
+    <p>If you have any questions, feel free to reach out to us.</p>
+    <br>
+    <p>Best regards,<br>The Fast-Arch Team</p>
+    """
