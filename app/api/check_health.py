@@ -19,7 +19,7 @@ if settings.debug:
 
 
 
-@router.get("/health")
+@router.get("")
 async def health_check():
     """Liveness probe — app is running."""
     return {"status": "ok"}
