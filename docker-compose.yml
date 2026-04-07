@@ -3,6 +3,8 @@ services:
   postgres:
     image: postgres:16
     container_name: fast_architectury_postgres
+    ports:
+      - "5438:5432"
     env_file:
       - .env
     volumes:
