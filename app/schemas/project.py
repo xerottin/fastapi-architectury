@@ -23,10 +23,10 @@ class ProjectCreate(BaseModel):
 class ProjectResponse(ProjectBase):
     name: str
     description: str | None = None
-    owner_public_id: UUID | None = None
+    owner_public_id: int | None = None
 
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
-    owner_public_id: UUID | None = None
+    owner_public_id: int | None = None
