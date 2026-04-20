@@ -5,7 +5,6 @@ from core.exceptions import AppException
 from db.session import get_pg_db
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
-from jose import ExpiredSignatureError, JWTError
 from models import User
 from passlib.context import CryptContext
 from sqlalchemy import select
@@ -20,9 +19,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 security = HTTPBearer()
 
-
-from uuid import UUID
-from sqlalchemy import select
 
 async def get_current_user(
     request: Request,
